@@ -1072,6 +1072,28 @@ class StableDiffusionPipeline(
 
                 # compute the previous noisy sample x_t -> x_t-1
                 latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs, return_dict=False)[0]
+                
+                # --- NEW: SAVE EVERY STEP ---
+                import os
+                from PIL import Image
+                
+                # Create a directory for this run if it doesn't exist
+                os.makedirs("latents_steps", exist_ok=True)
+                
+                # We need to decode the current latents to see the image
+                # Note: This will slow down generation significantly!
+                with torch.no_grad():
+                    # 1. Scale and decode
+                    temp_latents = latents / self.vae.config.scaling_factor
+                    step_image = self.vae.decode(temp_latents, return_dict=False)[0]
+                    
+                    # 2. Post-process to PIL
+                    step_image = self.image_processor.postprocess(step_image, output_type="pil")
+                    
+                    # 3. Save with the step index
+                    for idx, img in enumerate(step_image):
+                        img.save(f"latents_steps/{prompt[-5:]}step_{i:03d}_batch_{idx}.png")
+                # --- END SAVE BLOCK ---
 
                 if callback_on_step_end is not None:
                     callback_kwargs = {}
