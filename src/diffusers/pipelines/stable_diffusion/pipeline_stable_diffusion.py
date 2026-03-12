@@ -1028,6 +1028,7 @@ class StableDiffusionPipeline(
         # 7. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         self._num_timesteps = len(timesteps)
+        inverse_guidance_threshold = len(timesteps) - 20
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
                 if self.interrupt:
@@ -1052,7 +1053,18 @@ class StableDiffusionPipeline(
                 # perform guidance
                 if self.do_classifier_free_guidance:
                     noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-                    noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    
+                    # --- MODIFIED LOGIC START ---
+                    
+                    # noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    if i >= inverse_guidance_threshold:
+                        print(f"Inverse CFG {i}")
+                        noise_pred = noise_pred_uncond - self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    else:
+                        noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+                    
+                    # --- MODIFIED LOGIC END ---
+                        
 
                 if self.do_classifier_free_guidance and self.guidance_rescale > 0.0:
                     # Based on 3.4. in https://huggingface.co/papers/2305.08891
