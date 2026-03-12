@@ -802,6 +802,7 @@ class StableDiffusionPipeline(
         clip_skip: int | None = None,
         callback_on_step_end: Callable[[int, int], None] | PipelineCallback | MultiPipelineCallbacks | None = None,
         callback_on_step_end_tensor_inputs: list[str] = ["latents"],
+        num_inverse_cfg: int = 0,
         **kwargs,
     ):
         r"""
@@ -1028,7 +1029,7 @@ class StableDiffusionPipeline(
         # 7. Denoising loop
         num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
         self._num_timesteps = len(timesteps)
-        inverse_guidance_threshold = len(timesteps) - 20
+        inverse_guidance_threshold = len(timesteps) - num_inverse_cfg
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
                 if self.interrupt:
